@@ -1,0 +1,95 @@
+# Global configuration shared by all profiles
+quarkus:
+  http:
+    port: 8082
+  application:
+    name: amazoff-orders
+  rest-client:
+    buyer-service:
+      url: http://localhost:8080
+      connect-timeout: 5000
+      read-timeout: 10000
+    product-service:
+      url: http://localhost:8081
+      connect-timeout: 5000
+      read-timeout: 10000
+
+  hibernate-orm:
+    log:
+      sql: false
+    database:
+      generation: update
+    
+  jackson:
+    accept-case-insensitive-enums: true
+    
+# Development profile configuration
+"%dev":
+  quarkus:
+    datasource:
+      db-kind: postgresql
+      username: amazoff_user
+      password: amazoff_password
+      reactive:
+        url: vertx-reactive:postgresql://localhost:5432/amazoff_orders
+    hibernate-orm:
+      log:
+        sql: true
+      reactive:
+        database:
+          generation: drop-and-create
+    log:
+      console:
+        level: DEBUG
+
+# Test profile configuration
+"%test":
+  quarkus:
+    datasource:
+      db-kind: h2
+      jdbc:
+        url: jdbc:h2:mem:amazoff_users_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        driver: org.h2.Driver
+      username: sa
+      password: ""
+    hibernate-orm:
+      sql-load-script: import.sql
+      reactive:
+        database:
+          generation: drop-and-create
+    log:
+      console:
+        level: DEBUG
+
+# Production profile configuration
+"%prod":
+  quarkus:
+    datasource:
+      db-kind: postgresql
+      username: ${DB_USERNAME:postgres}
+      password: ${DB_PASSWORD:postgres}
+      reactive:
+        url: vertx-reactive:postgresql://${DB_HOST:db}:${DB_PORT:5432}/${DB_NAME:amazoff}
+    hibernate-orm:
+      database:
+        generation: update
+    log:
+      console:
+        level: DEBUG
+
+    rest-client:
+      buyer-service:
+        url: http://users-app:8080
+        connect-timeout: 5000
+        read-timeout: 10000
+      product-service:
+        url: http://products-app:8081
+        connect-timeout: 5000
+        read-timeout: 10000
+        
+    swagger-ui:
+      always-include: true
+      path: /q/swagger-ui
+    smallrye-openapi:
+      path: /q/openapi
+

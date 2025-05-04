@@ -91,10 +91,12 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc</artifactId>
         </dependency>
+
+        <!-- RabbitMQ reactive -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-rest-client-jackson</artifactId>
-        </dependency>
+            <artifactId>quarkus-messaging-rabbitmq</artifactId>
+        </dependency>        
 
         <dependency>
             <groupId>io.quarkus</groupId>

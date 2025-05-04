@@ -7,14 +7,15 @@ import exceptions.errors.OrderNotFoundException;
 import interfaces.IOrderRepository;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 
 @ApplicationScoped
 public class OrderRepository implements IOrderRepository {
 
-    @Inject
     SessionFactory sessionFactory;
+    public OrderRepository(SessionFactory sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
 
     @Override
     public Uni<Order> create(Order order) {
@@ -59,7 +60,7 @@ public class OrderRepository implements IOrderRepository {
     public Uni<Void> delete(int id) {
         return sessionFactory.withTransaction(session -> session.find(Order.class, id)
             .onItem().ifNull().failWith(() -> new OrderNotFoundException(id))
-            .onItem().ifNotNull().call(order -> session.remove(order))
+            .onItem().ifNotNull().call(session::remove)
             .replaceWithVoid());
     }
 }

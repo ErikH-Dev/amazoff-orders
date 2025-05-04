@@ -4,24 +4,29 @@ quarkus:
     port: 8082
   application:
     name: amazoff-orders
-  rest-client:
-    buyer-service:
-      url: http://localhost:8080
-      connect-timeout: 5000
-      read-timeout: 10000
-    product-service:
-      url: http://localhost:8081
-      connect-timeout: 5000
-      read-timeout: 10000
 
   hibernate-orm:
-    log:
-      sql: false
     database:
       generation: update
-    
-  jackson:
-    accept-case-insensitive-enums: true
+
+rabbitmq:
+  username: guest
+  password: guest
+  host: localhost
+  port: 5672
+
+mp:
+  messaging:
+    outgoing:
+      get-vendor-requests:
+        connector: smallrye-rabbitmq
+      get-products-requests:
+        connector: smallrye-rabbitmq
+    incoming:
+      get-vendor-responses:
+        connector: smallrye-rabbitmq
+      get-products-responses:
+        connector: smallrye-rabbitmq
     
 # Development profile configuration
 "%dev":
@@ -76,16 +81,6 @@ quarkus:
     log:
       console:
         level: DEBUG
-
-    rest-client:
-      buyer-service:
-        url: http://users-app:8080
-        connect-timeout: 5000
-        read-timeout: 10000
-      product-service:
-        url: http://products-app:8081
-        connect-timeout: 5000
-        read-timeout: 10000
         
     swagger-ui:
       always-include: true
@@ -93,3 +88,8 @@ quarkus:
     smallrye-openapi:
       path: /q/openapi
 
+    rabbitmq:
+      username: ${RABBITMQ_USERNAME:guest}
+      password: ${RABBITMQ_PASSWORD:guest}
+      host: ${RABBITMQ_HOST:localhost}
+      port: ${RABBITMQ_PORT:5672}

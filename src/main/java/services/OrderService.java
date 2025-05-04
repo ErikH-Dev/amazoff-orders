@@ -3,10 +3,6 @@ package services;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-
-import clients.IBuyerServiceClient;
-import clients.IProductServiceClient;
 import dto.CreateOrderRequest;
 import dto.UpdateOrderStatusRequest;
 import entities.Order;
@@ -18,25 +14,26 @@ import interfaces.IOrderRepository;
 import interfaces.IOrderService;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+
 @ApplicationScoped
 public class OrderService implements IOrderService {
 
     private final IOrderRepository orderRepository;
-    private final @RestClient IBuyerServiceClient buyerServiceClient;
-    private final @RestClient IProductServiceClient productServiceClient;
+    private final BuyerClientService buyerClientService;
+    private final ProductClientService productClientService;
 
-    public OrderService(IOrderRepository orderRepository, @RestClient IBuyerServiceClient buyerServiceClient, @RestClient IProductServiceClient productServiceClient) {
-        this.productServiceClient = productServiceClient;
+    public OrderService(IOrderRepository orderRepository, BuyerClientService buyerClientService, ProductClientService productClientService) {
         this.orderRepository = orderRepository;
-        this.buyerServiceClient = buyerServiceClient;
+        this.buyerClientService = buyerClientService;
+        this.productClientService = productClientService;
     }
 
     @Override
     public Uni<Order> create(CreateOrderRequest orderRequest) {
-        return buyerServiceClient.getBuyerById(orderRequest.oauthId)
+        return buyerClientService.getBuyerByOauthId(orderRequest.oauthId)
             .onItem().ifNull().failWith(new BuyerNotFoundException(orderRequest.oauthId))
             .onItem().transformToUni(buyer ->
-                productServiceClient.getProductsByIds(orderRequest.orderItemsIds)
+                productClientService.getProductsByIds(orderRequest.orderItemsIds)
                     .onItem().transform(productDTOs -> {
                         List<OrderItem> orderItems = productDTOs.stream()
                             .map(product -> new OrderItem(
@@ -60,8 +57,8 @@ public class OrderService implements IOrderService {
         return orderRepository.read(id)
             .onItem().ifNull().failWith(new OrderNotFoundException(id))
             .onItem().transformToUni(order ->
-                buyerServiceClient.getBuyerById(order.getBuyerId())
-                    .onItem().invoke(buyer -> order.setBuyer(buyer))
+                buyerClientService.getBuyerByOauthId(order.getBuyerId())
+                    .onItem().invoke(order::setBuyer)
                     .replaceWith(order)
             );
     }
@@ -74,7 +71,7 @@ public class OrderService implements IOrderService {
     @Override
     public Uni<Order> updateOrderStatus(UpdateOrderStatusRequest updateOrderStatusRequest) {
         return orderRepository.read(updateOrderStatusRequest.id)
-        .onItem().ifNull().failWith(new OrderNotFoundException(updateOrderStatusRequest.id))
+            .onItem().ifNull().failWith(new OrderNotFoundException(updateOrderStatusRequest.id))
             .onItem().transform(order -> new Order(order.getId(), order.getBuyer(), order.getOrderItems(), updateOrderStatusRequest.status, order.getOrderDate()))
             .onItem().transformToUni(orderRepository::update);
     }

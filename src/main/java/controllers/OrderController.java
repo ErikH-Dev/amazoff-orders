@@ -2,7 +2,6 @@ package controllers;
 
 import dto.CreateOrderRequest;
 import dto.UpdateOrderStatusRequest;
-import enums.OrderStatus;
 import interfaces.IOrderService;
 import io.smallrye.mutiny.Uni;
 import jakarta.validation.Valid;

@@ -46,3 +46,18 @@ jobs:
       run: |
         docker build -f src/main/docker/Dockerfile.jvm -t ghcr.io/$REPO_LC:latest .
         docker push ghcr.io/$REPO_LC:latest
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: amazoff-rg
+        cluster-name: amazoff-cluser
+
+    - name: Rollout restart deployment
+      run: |
+        kubectl rollout restart deployment orders-app -n default   

@@ -14,14 +14,14 @@ public class CreateOrderRequest {
     public int oauthId;
 
     @NotEmpty(message = "Order must contain at least one item")
-    @JsonProperty("order_item_ids")
-    public List<Integer> orderItemsIds = new ArrayList<>();
+    @JsonProperty("order_items")
+    public List<OrderItemRequest> orderItems = new ArrayList<>();
 
     public CreateOrderRequest() {
     }
 
-    public CreateOrderRequest(int oauthId, List<Integer> orderItemsIds) {
+    public CreateOrderRequest(int oauthId, List<OrderItemRequest> orderItems) {
         this.oauthId = oauthId;
-        this.orderItemsIds = orderItemsIds;
+        this.orderItems = orderItems;
     }
 }

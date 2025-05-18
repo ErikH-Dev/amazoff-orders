@@ -22,10 +22,14 @@ mp:
         connector: smallrye-rabbitmq
       get-products-requests:
         connector: smallrye-rabbitmq
+      reserve-stock-requests:
+        connector: smallrye-rabbitmq
     incoming:
       get-vendor-responses:
         connector: smallrye-rabbitmq
       get-products-responses:
+        connector: smallrye-rabbitmq
+      reserve-stock-responses:
         connector: smallrye-rabbitmq
     
 # Development profile configuration

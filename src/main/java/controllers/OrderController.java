@@ -7,13 +7,16 @@ import io.smallrye.mutiny.Uni;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import saga.OrderSagaOrchestrator;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/orders")
 public class OrderController {
     private final IOrderService orderService;
+    private final OrderSagaOrchestrator orderSagaOrchestrator;
 
-    public OrderController(IOrderService orderService) {
+    public OrderController(IOrderService orderService, OrderSagaOrchestrator orderSagaOrchestrator) {
+        this.orderSagaOrchestrator = orderSagaOrchestrator;
         this.orderService = orderService;
     }
 
@@ -21,8 +24,10 @@ public class OrderController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> createOrder(@Valid CreateOrderRequest orderRequest) {
-        return orderService.create(orderRequest)
-            .onItem().transform(createdOrder -> Response.ok(createdOrder).build());
+        return orderSagaOrchestrator.createOrderWithSaga(orderRequest)
+            .onItem().transform(order -> Response.ok(order).build())
+            .onFailure().recoverWithItem(e -> Response.status(Response.Status.BAD_REQUEST)
+                .entity(e.getMessage()).build());
     }
 
     @GET

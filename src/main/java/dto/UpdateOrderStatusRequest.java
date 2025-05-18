@@ -13,4 +13,9 @@ public class UpdateOrderStatusRequest {
     public OrderStatus status;
 
     public UpdateOrderStatusRequest() {}
+
+    public UpdateOrderStatusRequest(int id, OrderStatus orderStatus) {
+        this.id = id;
+        this.status = orderStatus;
+    }
 }

@@ -15,14 +15,15 @@ public class BuyerClientService {
 
     @Inject
     @Channel("get-buyer-requests")
-    Emitter<String> requestEmitter;
+    Emitter<JsonObject> requestEmitter;
 
     private final ConcurrentHashMap<Integer, CompletableFuture<BuyerDTO>> pendingRequests = new ConcurrentHashMap<>();
 
     public Uni<BuyerDTO> getBuyerByOauthId(int oauthId) {
         CompletableFuture<BuyerDTO> future = new CompletableFuture<>();
         pendingRequests.put(oauthId, future);
-        requestEmitter.send(String.valueOf(oauthId));
+        JsonObject requestJson = new JsonObject().put("oauthId", oauthId);
+        requestEmitter.send(requestJson);
         return Uni.createFrom().completionStage(future);
     }
 
@@ -33,7 +34,6 @@ public class BuyerClientService {
         try {
             buyer = json.mapTo(BuyerDTO.class);
         } catch (Exception e) {
-            // handle error, maybe log and ack
             return Uni.createFrom().completionStage(message.ack()).replaceWithVoid();
         }
         int oauthId = buyer.oauthId;

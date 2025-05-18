@@ -8,7 +8,7 @@ import entities.Order;
 import io.smallrye.mutiny.Uni;
 
 public interface IOrderService {
-    Uni<Order> create(CreateOrderRequest orderRequest);
+    Uni<Order> createPendingOrder(CreateOrderRequest orderRequest);
     Uni<Order> read(int id);
     Uni<List<Order>> readAllByUser(int oauthId);
     Uni<Order> updateOrderStatus(UpdateOrderStatusRequest orderStatusRequest);

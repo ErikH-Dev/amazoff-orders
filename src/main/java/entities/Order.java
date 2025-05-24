@@ -35,10 +35,10 @@ public class Order {
     @JsonProperty("order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "buyer_id", nullable = false)
-    @JsonProperty("buyer_id")
-    private int buyerId;
-    
+    @Column(name = "oauth_id", nullable = false)
+    @JsonProperty("oauth_id")
+    private int oauthId;
+
     @Transient
     @JsonProperty("buyer")
     private BuyerDTO buyer;
@@ -53,8 +53,16 @@ public class Order {
         this.orderDate = orderDate;
     }
 
-    public Order(int buyerId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
-        this.buyerId = buyerId;
+    public Order(int oauthId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
+        this.oauthId = oauthId;
+        this.orderItems = orderItems;
+        this.status = status;
+        this.orderDate = orderDate;
+    }
+
+    public Order(BuyerDTO buyer, int oauthId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
+        this.buyer = buyer;
+        this.oauthId = oauthId;
         this.orderItems = orderItems;
         this.status = status;
         this.orderDate = orderDate;
@@ -72,8 +80,8 @@ public class Order {
         return id;
     }
 
-    public int getBuyerId() {
-        return buyerId;
+    public int getOauthId() {
+        return oauthId;
     }
 
     public List<OrderItem> getOrderItems() {
@@ -82,6 +90,10 @@ public class Order {
 
     public OrderStatus getStatus() {
         return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getOrderDate() {

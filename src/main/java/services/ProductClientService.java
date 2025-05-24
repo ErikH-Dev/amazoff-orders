@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.*;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +16,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @ApplicationScoped
 public class ProductClientService {
 
+    private static final Logger LOG = Logger.getLogger(ProductClientService.class);
+
     @Inject
     @Channel("get-products-requests")
     Emitter<JsonObject> productRequestEmitter;
@@ -22,6 +25,7 @@ public class ProductClientService {
     private final ConcurrentLinkedQueue<CompletableFuture<List<ProductDTO>>> pending = new ConcurrentLinkedQueue<>();
 
     public Uni<List<ProductDTO>> getProductsByIds(List<Integer> ids) {
+        LOG.infof("Requesting product details for productIds=%s", ids);
         JsonObject requestJson = new JsonObject().put("productIds", ids);
 
         CompletableFuture<List<ProductDTO>> future = new CompletableFuture<>();
@@ -34,6 +38,7 @@ public class ProductClientService {
 
     @Incoming("get-products-responses")
     public Uni<Void> onProductsResponse(Message<JsonObject> responseJson) {
+        LOG.info("Received products response from Products service");
         JsonObject body = responseJson.getPayload();
 
         CompletableFuture<List<ProductDTO>> future = pending.poll();
@@ -55,6 +60,7 @@ public class ProductClientService {
     private final ConcurrentLinkedQueue<CompletableFuture<Object>> reservePending = new ConcurrentLinkedQueue<>();
 
     public Uni<Object> reserveStock(List<ReserveStockItem> items) {
+        LOG.infof("Requesting stock reservation for items=%s", items);
         JsonObject requestJson = new JsonObject().put("items", items);
 
         CompletableFuture<Object> future = new CompletableFuture<>();
@@ -67,6 +73,7 @@ public class ProductClientService {
 
     @Incoming("reserve-stock-responses")
     public Uni<Void> onReserveStockResponse(Message<JsonObject> responseJson) {
+        LOG.info("Received reserve stock response from Products service");
         JsonObject body = responseJson.getPayload();
 
         CompletableFuture<Object> future = reservePending.poll();

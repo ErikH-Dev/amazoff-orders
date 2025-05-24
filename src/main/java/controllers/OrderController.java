@@ -9,9 +9,12 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import saga.OrderSagaOrchestrator;
 import jakarta.ws.rs.core.MediaType;
+import org.jboss.logging.Logger;
+import org.jboss.logging.MDC;
 
 @Path("/orders")
 public class OrderController {
+    private static final Logger LOG = Logger.getLogger(OrderController.class);
     private final IOrderService orderService;
     private final OrderSagaOrchestrator orderSagaOrchestrator;
 
@@ -24,8 +27,15 @@ public class OrderController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> createOrder(@Valid CreateOrderRequest orderRequest) {
+        LOG.infof("Received createOrder request for buyer oauthId=%d", orderRequest.oauthId);
         return orderSagaOrchestrator.createOrderWithSaga(orderRequest)
+            .onItem().invoke(order -> {
+                MDC.put("orderId", order.getId());
+                LOG.infof("Order created successfully: orderId=%d", order.getId());
+                MDC.remove("orderId");
+            })
             .onItem().transform(order -> Response.ok(order).build())
+            .onFailure().invoke(e -> LOG.errorf("Failed to create order: %s", e.getMessage()))
             .onFailure().recoverWithItem(e -> Response.status(Response.Status.BAD_REQUEST)
                 .entity(e.getMessage()).build());
     }
@@ -34,16 +44,27 @@ public class OrderController {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> getOrderById(@PathParam("id") int id) {
+        MDC.put("orderId", id);
+        LOG.infof("Received getOrderById request: orderId=%d", id);
         return orderService.read(id)
-            .onItem().transform(order -> Response.ok(order).build());
+            .onItem().invoke(order -> LOG.infof("Order retrieved: orderId=%d", order.getId()))
+            .onItem().transform(order -> Response.ok(order).build())
+            .onFailure().invoke(e -> LOG.errorf("Failed to get order: %s", e.getMessage()))
+            .eventually(() -> {
+                MDC.remove("orderId");
+                return Uni.createFrom().voidItem();
+            });
     }
 
     @GET
     @Path("/user/{oauthId}")
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> getAllOrdersByUser(@PathParam("oauthId") int oauthId) {
+        LOG.infof("Received getAllOrdersByUser request: oauthId=%d", oauthId);
         return orderService.readAllByUser(oauthId)
-            .onItem().transform(orders -> Response.ok(orders).build());
+            .onItem().invoke(orders -> LOG.infof("Orders retrieved for user: oauthId=%d, count=%d", oauthId, orders.size()))
+            .onItem().transform(orders -> Response.ok(orders).build())
+            .onFailure().invoke(e -> LOG.errorf("Failed to get orders for user: %s", e.getMessage()));
     }
 
     @PUT
@@ -51,14 +72,30 @@ public class OrderController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> updateOrderStatus(@Valid UpdateOrderStatusRequest orderStatusRequest) {
+        MDC.put("orderId", orderStatusRequest.id);
+        LOG.infof("Received updateOrderStatus request: orderId=%d, newStatus=%s", orderStatusRequest.id, orderStatusRequest.status);
         return orderService.updateOrderStatus(orderStatusRequest)
-            .onItem().transform(updatedOrder -> Response.ok(updatedOrder).build());
+            .onItem().invoke(updatedOrder -> LOG.infof("Order status updated: orderId=%d, newStatus=%s", updatedOrder.getId(), updatedOrder.getStatus()))
+            .onItem().transform(updatedOrder -> Response.ok(updatedOrder).build())
+            .onFailure().invoke(e -> LOG.errorf("Failed to update order status: %s", e.getMessage()))
+            .eventually(() -> {
+                MDC.remove("orderId");
+                return Uni.createFrom().voidItem();
+            });
     }
 
     @DELETE
     @Path("/{id}")
     public Uni<Response> deleteOrder(@PathParam("id") int id) {
+        MDC.put("orderId", id);
+        LOG.infof("Received deleteOrder request: orderId=%d", id);
         return orderService.delete(id)
-            .onItem().transform(v -> Response.noContent().build());
+            .onItem().invoke(v -> LOG.infof("Order deleted: orderId=%d", id))
+            .onItem().transform(v -> Response.noContent().build())
+            .onFailure().invoke(e -> LOG.errorf("Failed to delete order: %s", e.getMessage()))
+            .eventually(() -> {
+                MDC.remove("orderId");
+                return Uni.createFrom().voidItem();
+            });
     }
 }

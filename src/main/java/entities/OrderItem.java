@@ -14,6 +14,11 @@ public class OrderItem {
     @JsonProperty("id")
     private int id;
 
+    @Column(name = "product_id")
+    @JsonProperty("productId")
+    @NotNull(message = "Product ID must not be null")
+    private int productId;
+
     @ManyToOne
     @JoinColumn(name = "order_Id", referencedColumnName = "id", nullable = false)
     @JsonBackReference
@@ -21,7 +26,7 @@ public class OrderItem {
     private Order order;
 
     @NotNull(message = "Product name must not be null")
-    @Size(max=255, message = "Product name must be less than 255 characters")
+    @Size(max = 255, message = "Product name must be less than 255 characters")
     @JsonProperty("name")
     private String name;
 
@@ -31,7 +36,7 @@ public class OrderItem {
     private Double price;
 
     @NotNull
-    @Size(max=255, message = "Product description must be less than 255 characters")
+    @Size(max = 255, message = "Product description must be less than 255 characters")
     @JsonProperty("description")
     private String description;
 
@@ -40,7 +45,16 @@ public class OrderItem {
     @JsonProperty("quantity")
     private int quantity;
 
-    public OrderItem() {}
+    public OrderItem() {
+    }
+
+    public OrderItem(int productId, String name, double price, String description, int quantity) {
+        this.productId = productId;
+        this.name = name;
+        this.price = price;
+        this.description = description;
+        this.quantity = quantity;
+    }
 
     public OrderItem(String name, double price, String description, int quantity) {
         this.name = name;
@@ -60,6 +74,10 @@ public class OrderItem {
 
     public int getId() {
         return id;
+    }
+
+    public int getProductId() {
+        return productId;
     }
 
     public Order getOrder() {

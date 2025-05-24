@@ -14,9 +14,13 @@ import interfaces.IOrderRepository;
 import interfaces.IOrderService;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
+import org.jboss.logging.MDC;
 
 @ApplicationScoped
 public class OrderService implements IOrderService {
+
+    private static final Logger LOG = Logger.getLogger(OrderService.class);
 
     private final IOrderRepository orderRepository;
     private final BuyerClientService buyerClientService;
@@ -31,7 +35,7 @@ public class OrderService implements IOrderService {
 
     @Override
     public Uni<Order> createPendingOrder(CreateOrderRequest orderRequest) {
-        // 1. Fetch buyer
+        LOG.infof("Creating pending order for buyer oauthId=%d", orderRequest.oauthId);
         return buyerClientService.getBuyerByOauthId(orderRequest.oauthId)
                 .onItem().ifNull().failWith(new BuyerNotFoundException(orderRequest.oauthId))
                 .onItem().transformToUni(buyer -> {
@@ -57,6 +61,7 @@ public class OrderService implements IOrderService {
                                                 throw new RuntimeException("Product not found: " + req.productId);
                                             }
                                             return new OrderItem(
+                                                    req.productId,
                                                     product.name,
                                                     product.price,
                                                     product.description,
@@ -66,45 +71,84 @@ public class OrderService implements IOrderService {
 
                                 // 6. Create Order with PENDING status
                                 Order order = new Order(
-                                        orderRequest.oauthId,
+                                        buyer,
+                                        buyer.oauthId,
                                         orderItems,
                                         OrderStatus.PENDING,
                                         LocalDateTime.now());
-                                order.setBuyer(buyer);
                                 orderItems.forEach(item -> item.setOrder(order));
-                                return orderRepository.create(order);
+                                // Persist order, then log with MDC after ID is generated
+                                return orderRepository.create(order)
+                                        .invoke(persistedOrder -> {
+                                            MDC.put("orderId", persistedOrder.getId());
+                                            LOG.infof("Order created: orderId=%d, oauthId=%d, items=%d",
+                                                    persistedOrder.getId(), persistedOrder.getOauthId(),
+                                                    orderItems.size());
+                                            MDC.remove("orderId");
+                                        });
                             });
-                });
+                })
+                .onFailure().invoke(e -> LOG.errorf("Failed to create order: %s", e.getMessage()));
     }
 
     @Override
     public Uni<Order> read(int id) {
+        MDC.put("orderId", id);
+        LOG.infof("Reading order: orderId=%d", id);
         return orderRepository.read(id)
                 .onItem().ifNull().failWith(new OrderNotFoundException(id))
-                .onItem().transformToUni(order -> buyerClientService.getBuyerByOauthId(order.getBuyerId())
+                .onItem().invoke(order -> LOG.infof("Order read successfully: orderId=%d", order.getId()))
+                .onItem().transformToUni(order -> buyerClientService.getBuyerByOauthId(order.getOauthId())
                         .onItem().invoke(order::setBuyer)
-                        .replaceWith(order));
+                        .replaceWith(order))
+                .onFailure().invoke(e -> LOG.errorf("Failed to read order: %s", e.getMessage()))
+                .eventually(() -> {
+                    MDC.remove("orderId");
+                    return Uni.createFrom().voidItem();
+                });
     }
 
     @Override
     public Uni<List<Order>> readAllByUser(int oauthId) {
-        return orderRepository.readAllByUser(oauthId);
+        LOG.infof("Reading all orders for user: oauthId=%d", oauthId);
+        return orderRepository.readAllByUser(oauthId)
+                .onItem().invoke(orders -> LOG.infof("Read %d orders for user: oauthId=%d", orders.size(), oauthId))
+                .onFailure().invoke(e -> LOG.errorf("Failed to read orders for user: %s", e.getMessage()));
     }
 
     @Override
     public Uni<Order> updateOrderStatus(UpdateOrderStatusRequest updateOrderStatusRequest) {
+        MDC.put("orderId", updateOrderStatusRequest.id);
+        LOG.infof("Updating order status: orderId=%d, newStatus=%s", updateOrderStatusRequest.id,
+                updateOrderStatusRequest.status);
         return orderRepository.read(updateOrderStatusRequest.id)
                 .onItem().ifNull().failWith(new OrderNotFoundException(updateOrderStatusRequest.id))
                 .onItem()
-                .transform(order -> new Order(order.getId(), order.getBuyer(), order.getOrderItems(),
-                        updateOrderStatusRequest.status, order.getOrderDate()))
-                .onItem().transformToUni(orderRepository::update);
+                .transform(order -> {
+                    order.setStatus(updateOrderStatusRequest.status);
+                    return order;
+                })
+                .onItem().transformToUni(orderRepository::update)
+                .onFailure().invoke(e -> LOG.errorf("Failed to update order status: %s", e.getMessage()))
+                .eventually(() -> {
+                    MDC.remove("orderId");
+                    return Uni.createFrom().voidItem();
+                });
     }
 
     @Override
     public Uni<Void> delete(int id) {
+        MDC.put("orderId", id);
+        LOG.infof("Deleting order: orderId=%d", id);
         return orderRepository.read(id)
                 .onItem().ifNull().failWith(new OrderNotFoundException(id))
-                .onItem().transformToUni(order -> orderRepository.delete(id).replaceWith(Uni.createFrom().voidItem()));
+                .onItem().transformToUni(order -> orderRepository.delete(id)
+                        .invoke(() -> LOG.infof("Order deleted: orderId=%d", id))
+                        .replaceWith(Uni.createFrom().voidItem()))
+                .onFailure().invoke(e -> LOG.errorf("Failed to delete order: %s", e.getMessage()))
+                .eventually(() -> {
+                    MDC.remove("orderId");
+                    return Uni.createFrom().voidItem();
+                });
     }
 }

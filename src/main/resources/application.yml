@@ -4,6 +4,13 @@ quarkus:
     port: 8082
   application:
     name: amazoff-orders
+  log:
+    console:
+      json: true
+      level: INFO
+    category:
+      "io.smallrye.reactive.messaging":
+        level: DEBUG
 
   hibernate-orm:
     database:
@@ -62,7 +69,6 @@ mp:
       username: sa
       password: ""
     hibernate-orm:
-      sql-load-script: import.sql
       reactive:
         database:
           generation: drop-and-create

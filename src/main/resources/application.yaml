@@ -16,11 +16,16 @@ quarkus:
     database:
       generation: update
 
-rabbitmq:
-  username: guest
-  password: guest
-  host: localhost
-  port: 5672
+  # Enable health checks
+  smallrye-health:
+    root-path: /q/health
+
+# Micrometer configuration for Prometheus
+micrometer:
+  export:
+    prometheus:
+      enabled: true
+      path: /q/metrics
 
 mp:
   messaging:
@@ -38,6 +43,14 @@ mp:
         connector: smallrye-rabbitmq
       reserve-stock-responses:
         connector: smallrye-rabbitmq
+
+    # Global RabbitMQ connector configuration with environment variable overrides
+    connector:
+      smallrye-rabbitmq:
+        username: ${RABBITMQ_USERNAME:guest}
+        password: ${RABBITMQ_PASSWORD:guest}
+        host: ${RABBITMQ_HOST:localhost}
+        port: ${RABBITMQ_PORT:5672}
     
 # Development profile configuration
 "%dev":
@@ -58,13 +71,23 @@ mp:
       console:
         level: DEBUG
 
+  # Override RabbitMQ settings for development
+  mp:
+    messaging:
+      connector:
+        smallrye-rabbitmq:
+          username: guest
+          password: guest
+          host: localhost
+          port: 5672
+
 # Test profile configuration
 "%test":
   quarkus:
     datasource:
       db-kind: h2
       jdbc:
-        url: jdbc:h2:mem:amazoff_users_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        url: jdbc:h2:mem:amazoff_orders_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
         driver: org.h2.Driver
       username: sa
       password: ""
@@ -84,7 +107,7 @@ mp:
       username: ${DB_USERNAME:postgres}
       password: ${DB_PASSWORD:postgres}
       reactive:
-        url: vertx-reactive:postgresql://${DB_HOST:db}:${DB_PORT:5432}/${DB_NAME:amazoff}
+        url: vertx-reactive:postgresql://${DB_HOST:orders-db}:${DB_PORT:5432}/${DB_NAME:amazoff}
     hibernate-orm:
       database:
         generation: update
@@ -97,9 +120,3 @@ mp:
       path: /q/swagger-ui
     smallrye-openapi:
       path: /q/openapi
-
-    rabbitmq:
-      username: ${RABBITMQ_USERNAME:guest}
-      password: ${RABBITMQ_PASSWORD:guest}
-      host: ${RABBITMQ_HOST:localhost}
-      port: ${RABBITMQ_PORT:5672}

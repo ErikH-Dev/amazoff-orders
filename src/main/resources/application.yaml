@@ -4,13 +4,6 @@ quarkus:
     port: 8082
   application:
     name: amazoff-orders
-  log:
-    console:
-      json: true
-      level: INFO
-    category:
-      "io.smallrye.reactive.messaging":
-        level: DEBUG
 
   hibernate-orm:
     database:
@@ -19,6 +12,10 @@ quarkus:
   # Enable health checks
   smallrye-health:
     root-path: /q/health
+
+  # Disable separate management interface - keep everything on main port
+  management:
+    enabled: false
 
 # Micrometer configuration for Prometheus
 micrometer:
@@ -113,7 +110,7 @@ mp:
         generation: update
     log:
       console:
-        level: DEBUG
+        level: INFO
         
     swagger-ui:
       always-include: true

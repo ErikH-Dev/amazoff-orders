@@ -32,7 +32,7 @@ public class BuyerClientService {
     }
 
     @Incoming("get-buyer-responses")
-    public Uni<Void> onVendorResponse(Message<JsonObject> message) {
+    public Uni<Void> onBuyerResponse(Message<JsonObject> message) {
         LOG.info("Received buyer response from Users service");
         JsonObject json = message.getPayload();
         BuyerDTO buyer;

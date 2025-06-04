@@ -124,11 +124,6 @@
             <artifactId>quarkus-jdbc-postgresql</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-health</artifactId>
-        </dependency>
-
         <!-- Mockito JUnit Jupiter Integration -->
         <dependency>
             <groupId>org.mockito</groupId>

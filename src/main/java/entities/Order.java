@@ -35,9 +35,9 @@ public class Order {
     @JsonProperty("order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "oauth_id", nullable = false)
-    @JsonProperty("oauth_id")
-    private int oauthId;
+    @Column(name = "keycloak_id", nullable = false)
+    @JsonProperty("keycloak_id")
+    private String keycloakId;
 
     @Transient
     @JsonProperty("buyer")
@@ -53,16 +53,16 @@ public class Order {
         this.orderDate = orderDate;
     }
 
-    public Order(int oauthId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
-        this.oauthId = oauthId;
+    public Order(String keycloakId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
+        this.keycloakId = keycloakId;
         this.orderItems = orderItems;
         this.status = status;
         this.orderDate = orderDate;
     }
 
-    public Order(BuyerDTO buyer, int oauthId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
+    public Order(BuyerDTO buyer, String keycloakId, List<OrderItem> orderItems, OrderStatus status, LocalDateTime orderDate) {
         this.buyer = buyer;
-        this.oauthId = oauthId;
+        this.keycloakId = keycloakId;
         this.orderItems = orderItems;
         this.status = status;
         this.orderDate = orderDate;
@@ -80,8 +80,8 @@ public class Order {
         return id;
     }
 
-    public int getOauthId() {
-        return oauthId;
+    public String getKeycloakId() {
+        return keycloakId;
     }
 
     public List<OrderItem> getOrderItems() {

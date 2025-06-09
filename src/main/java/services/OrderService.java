@@ -34,13 +34,14 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public Uni<Order> createPendingOrder(CreateOrderRequest orderRequest) {
-        LOG.infof("Creating pending order for buyer oauthId=%d", orderRequest.oauthId);
-        return buyerClientService.getBuyerByOauthId(orderRequest.oauthId)
-                .onItem().ifNull().failWith(new BuyerNotFoundException(orderRequest.oauthId))
+    public Uni<Order> createPendingOrder(CreateOrderRequest orderRequest, String keycloakId) {
+        LOG.infof("Creating pending order for buyer keycloakId=%d", keycloakId);
+        return buyerClientService.getBuyerByKeycloakId(keycloakId)
+                .onItem().ifNull().failWith(new BuyerNotFoundException(keycloakId))
                 .onItem().transformToUni(buyer -> {
                     // 2. Collect all productIds from the order request
-                    List<Integer> productIds = orderRequest.orderItems.stream()
+                    List<String> productIds = orderRequest.orderItems.stream() // Changed from
+                                                                               // List<Integer>
                             .map(item -> item.productId)
                             .toList();
 
@@ -49,19 +50,26 @@ public class OrderService implements IOrderService {
                             .onItem().transformToUni(productDTOs -> {
                                 // 4. Map productId to ProductDTO for quick lookup
                                 var productMap = productDTOs.stream()
-                                        .collect(java.util.stream.Collectors.toMap(
-                                                dto -> dto.id,
-                                                dto -> dto));
+                                        .collect(java.util.stream.Collectors
+                                                .toMap(
+                                                        dto -> dto.id,
+                                                        dto -> dto));
 
-                                // 5. Build OrderItems with product info and requested quantity
-                                List<OrderItem> orderItems = orderRequest.orderItems.stream()
+                                // 5. Build OrderItems with product info and requested
+                                // quantity
+                                List<OrderItem> orderItems = orderRequest.orderItems
+                                        .stream()
                                         .map(req -> {
-                                            var product = productMap.get(req.productId);
+                                            var product = productMap.get(
+                                                    req.productId);
                                             if (product == null) {
-                                                throw new RuntimeException("Product not found: " + req.productId);
+                                                throw new RuntimeException(
+                                                        "Product not found: "
+                                                                + req.productId);
                                             }
                                             return new OrderItem(
-                                                    req.productId,
+                                                    req.productId, // Now
+                                                                   // String
                                                     product.name,
                                                     product.price,
                                                     product.description,
@@ -72,17 +80,20 @@ public class OrderService implements IOrderService {
                                 // 6. Create Order with PENDING status
                                 Order order = new Order(
                                         buyer,
-                                        buyer.oauthId,
+                                        buyer.keycloakId,
                                         orderItems,
                                         OrderStatus.PENDING,
                                         LocalDateTime.now());
                                 orderItems.forEach(item -> item.setOrder(order));
-                                // Persist order, then log with MDC after ID is generated
+                                // Persist order, then log with MDC after ID is
+                                // generated
                                 return orderRepository.create(order)
                                         .invoke(persistedOrder -> {
-                                            MDC.put("orderId", persistedOrder.getId());
-                                            LOG.infof("Order created: orderId=%d, oauthId=%d, items=%d",
-                                                    persistedOrder.getId(), persistedOrder.getOauthId(),
+                                            MDC.put("orderId",
+                                                    persistedOrder.getId());
+                                            LOG.infof("Order created: orderId=%d, keycloakId=%d, items=%d",
+                                                    persistedOrder.getId(),
+                                                    persistedOrder.getKeycloakId(),
                                                     orderItems.size());
                                             MDC.remove("orderId");
                                         });
@@ -97,8 +108,10 @@ public class OrderService implements IOrderService {
         LOG.infof("Reading order: orderId=%d", id);
         return orderRepository.read(id)
                 .onItem().ifNull().failWith(new OrderNotFoundException(id))
-                .onItem().invoke(order -> LOG.infof("Order read successfully: orderId=%d", order.getId()))
-                .onItem().transformToUni(order -> buyerClientService.getBuyerByOauthId(order.getOauthId())
+                .onItem()
+                .invoke(order -> LOG.infof("Order read successfully: orderId=%d", order.getId()))
+                .onItem()
+                .transformToUni(order -> buyerClientService.getBuyerByKeycloakId(order.getKeycloakId())
                         .onItem().invoke(order::setBuyer)
                         .replaceWith(order))
                 .onFailure().invoke(e -> LOG.errorf("Failed to read order: %s", e.getMessage()))
@@ -109,11 +122,14 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public Uni<List<Order>> readAllByUser(int oauthId) {
-        LOG.infof("Reading all orders for user: oauthId=%d", oauthId);
-        return orderRepository.readAllByUser(oauthId)
-                .onItem().invoke(orders -> LOG.infof("Read %d orders for user: oauthId=%d", orders.size(), oauthId))
-                .onFailure().invoke(e -> LOG.errorf("Failed to read orders for user: %s", e.getMessage()));
+    public Uni<List<Order>> readAllByUser(String keycloakId) {
+        LOG.infof("Reading all orders for user: keycloakId=%s", keycloakId);
+        return orderRepository.readAllByUser(keycloakId)
+                .onItem()
+                .invoke(orders -> LOG.infof("Read %d orders for user: keycloakId=%s", orders.size(),
+                        keycloakId))
+                .onFailure()
+                .invoke(e -> LOG.errorf("Failed to read orders for user: %s", e.getMessage()));
     }
 
     @Override
@@ -129,7 +145,8 @@ public class OrderService implements IOrderService {
                     return order;
                 })
                 .onItem().transformToUni(orderRepository::update)
-                .onFailure().invoke(e -> LOG.errorf("Failed to update order status: %s", e.getMessage()))
+                .onFailure()
+                .invoke(e -> LOG.errorf("Failed to update order status: %s", e.getMessage()))
                 .eventually(() -> {
                     MDC.remove("orderId");
                     return Uni.createFrom().voidItem();

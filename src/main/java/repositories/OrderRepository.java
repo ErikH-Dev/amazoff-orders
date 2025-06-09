@@ -45,14 +45,14 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
-    public Uni<List<Order>> readAllByUser(int oauthId) {
-        LOG.debugf("Fetching all orders for user: oauthId=%d", oauthId);
-        return sessionFactory.withSession(session -> 
+    public Uni<List<Order>> readAllByUser(String keycloakId) {
+        LOG.debugf("Fetching all orders for user: keycloakId=%s", keycloakId);
+        return sessionFactory.withSession(session ->
             session.createQuery(
-                "SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.oauthId = :oauthId", Order.class)
-                .setParameter("oauthId", oauthId)
+                "SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.keycloakId = :keycloakId", Order.class)
+                .setParameter("keycloakId", keycloakId)
                 .getResultList()
-        ).onItem().invoke(list -> LOG.debugf("Fetched %d orders for user: oauthId=%d", list.size(), oauthId))
+        ).onItem().invoke(list -> LOG.debugf("Fetched %d orders for user: keycloakId=%s", list.size(), keycloakId))
         .onFailure().invoke(e -> {
             LOG.errorf("Failed to retrieve orders: %s", e.getMessage());
             throw new RuntimeException("Failed to retrieve orders: " + e.getMessage(), e);

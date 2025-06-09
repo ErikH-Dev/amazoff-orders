@@ -21,26 +21,26 @@ public class BuyerClientService {
     @Channel("get-buyer-requests")
     Emitter<JsonObject> requestEmitter;
 
-    private final ConcurrentHashMap<Integer, CompletableFuture<BuyerDTO>> pendingRequests = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CompletableFuture<BuyerDTO>> pendingRequests = new ConcurrentHashMap<>();
 
-    public Uni<BuyerDTO> getBuyerByOauthId(int oauthId) {
-        LOG.infof("Requesting buyer details for oauthId=%d", oauthId);
+    public Uni<BuyerDTO> getBuyerByKeycloakId(String keycloakId) {
+        LOG.infof("Requesting buyer details for keycloakId=%s", keycloakId);
         CompletableFuture<BuyerDTO> future = new CompletableFuture<>();
-        pendingRequests.put(oauthId, future);
-        JsonObject requestJson = new JsonObject().put("oauthId", oauthId);
-        
+        pendingRequests.put(keycloakId, future);
+        JsonObject requestJson = new JsonObject().put("keycloakId", keycloakId);
+
         try {
             requestEmitter.send(requestJson);
         } catch (Exception e) {
             LOG.errorf("Failed to send buyer request: %s", e.getMessage());
-            pendingRequests.remove(oauthId);
+            pendingRequests.remove(keycloakId);
             return Uni.createFrom().failure(e);
         }
         
         return Uni.createFrom().completionStage(future)
                 .onFailure().invoke(e -> {
-                    pendingRequests.remove(oauthId);
-                    LOG.errorf("Failed to get buyer for oauthId=%d: %s", oauthId, e.getMessage());
+                    pendingRequests.remove(keycloakId);
+                    LOG.errorf("Failed to get buyer for keycloakId=%d: %s", keycloakId, e.getMessage());
                 });
     }
 
@@ -49,15 +49,14 @@ public class BuyerClientService {
         LOG.info("Received buyer response from Users service");
         JsonObject json = message.getPayload();
 
-        // Check if this is an error response
         if (json.getBoolean("error", false)) {
-            int oauthId = json.getInteger("oauthId");
+            String keycloakId = json.getString("keycloakId");
             String errorMessage = json.getString("message", "Unknown error");
-            LOG.warnf("Received error response for oauthId=%d: %s", oauthId, errorMessage);
+            LOG.warnf("Received error response for keycloakId=%s: %s", keycloakId, errorMessage);
 
-            CompletableFuture<BuyerDTO> future = pendingRequests.remove(oauthId);
+            CompletableFuture<BuyerDTO> future = pendingRequests.remove(keycloakId);
             if (future != null) {
-                future.completeExceptionally(new BuyerNotFoundException(oauthId));
+                future.completeExceptionally(new BuyerNotFoundException(keycloakId));
             }
             return Uni.createFrom().completionStage(message.ack()).replaceWithVoid();
         }
@@ -70,8 +69,8 @@ public class BuyerClientService {
             return Uni.createFrom().completionStage(message.ack()).replaceWithVoid();
         }
 
-        int oauthId = buyer.oauthId;
-        CompletableFuture<BuyerDTO> future = pendingRequests.remove(oauthId);
+        String keycloakId = buyer.keycloakId;
+        CompletableFuture<BuyerDTO> future = pendingRequests.remove(keycloakId);
         if (future != null) {
             future.complete(buyer);
         }

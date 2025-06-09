@@ -2,12 +2,14 @@ package controllers;
 
 import dto.CreateOrderRequest;
 import dto.UpdateOrderStatusRequest;
+import entities.Order;
 import interfaces.IOrderService;
 import io.smallrye.mutiny.Uni;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import saga.OrderSagaOrchestrator;
+import utils.JwtUtil;
 import jakarta.ws.rs.core.MediaType;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
@@ -17,18 +19,21 @@ public class OrderController {
     private static final Logger LOG = Logger.getLogger(OrderController.class);
     private final IOrderService orderService;
     private final OrderSagaOrchestrator orderSagaOrchestrator;
+    private JwtUtil jwtUtil;
 
-    public OrderController(IOrderService orderService, OrderSagaOrchestrator orderSagaOrchestrator) {
+    public OrderController(IOrderService orderService, OrderSagaOrchestrator orderSagaOrchestrator, JwtUtil jwtUtil) {
         this.orderSagaOrchestrator = orderSagaOrchestrator;
         this.orderService = orderService;
+        this.jwtUtil = jwtUtil;
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> createOrder(@Valid CreateOrderRequest orderRequest) {
-        LOG.infof("Received createOrder request for buyer oauthId=%d", orderRequest.oauthId);
-        return orderSagaOrchestrator.createOrderWithSaga(orderRequest)
+        String keycloakId = jwtUtil.getCurrentKeycloakUserId();
+        LOG.infof("Received createOrder request for buyer keycloakId=%d", keycloakId);
+        return orderSagaOrchestrator.createOrderWithSaga(orderRequest, keycloakId)
             .onItem().invoke(order -> {
                 MDC.put("orderId", order.getId());
                 LOG.infof("Order created successfully: orderId=%d", order.getId());
@@ -57,12 +62,12 @@ public class OrderController {
     }
 
     @GET
-    @Path("/user/{oauthId}")
+    @Path("/user/{keycloakId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Uni<Response> getAllOrdersByUser(@PathParam("oauthId") int oauthId) {
-        LOG.infof("Received getAllOrdersByUser request: oauthId=%d", oauthId);
-        return orderService.readAllByUser(oauthId)
-            .onItem().invoke(orders -> LOG.infof("Orders retrieved for user: oauthId=%d, count=%d", oauthId, orders.size()))
+    public Uni<Response> getAllOrdersByUser(@PathParam("keycloakId") String keycloakId) {
+        LOG.infof("Received getAllOrdersByUser request: keycloakId=%s", keycloakId);
+        return orderService.readAllByUser(keycloakId)
+            .onItem().invoke(orders -> LOG.infof("Orders retrieved for user: keycloakId=%s, count=%d", keycloakId, orders.size()))
             .onItem().transform(orders -> Response.ok(orders).build())
             .onFailure().invoke(e -> LOG.errorf("Failed to get orders for user: %s", e.getMessage()));
     }

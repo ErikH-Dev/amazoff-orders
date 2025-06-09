@@ -17,7 +17,7 @@ public class OrderItem {
     @Column(name = "product_id")
     @JsonProperty("productId")
     @NotNull(message = "Product ID must not be null")
-    private int productId;
+    private String productId;
 
     @ManyToOne
     @JoinColumn(name = "order_Id", referencedColumnName = "id", nullable = false)
@@ -48,7 +48,7 @@ public class OrderItem {
     public OrderItem() {
     }
 
-    public OrderItem(int productId, String name, double price, String description, int quantity) {
+    public OrderItem(String productId, String name, double price, String description, int quantity) { // Updated constructor
         this.productId = productId;
         this.name = name;
         this.price = price;
@@ -76,7 +76,7 @@ public class OrderItem {
         return id;
     }
 
-    public int getProductId() {
+    public String getProductId() {
         return productId;
     }
 

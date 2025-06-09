@@ -8,7 +8,7 @@ import io.smallrye.mutiny.Uni;
 public interface IOrderRepository {
     Uni<Order> create(Order order);
     Uni<Order> read(int id);
-    Uni<List<Order>> readAllByUser(int oauthId);
+    Uni<List<Order>> readAllByUser(String keycloakId);
     Uni<Order> update(Order order);
     Uni<Void> delete(int id);
 }

@@ -3,8 +3,8 @@ package dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BuyerDTO {
-    @JsonProperty("oauth_id")
-    public int oauthId;
+    @JsonProperty("keycloak_id")
+    public String keycloakId;
 
     @JsonProperty("first_name")
     public String firstName;

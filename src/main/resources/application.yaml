@@ -29,13 +29,25 @@ mp:
     incoming:
       get-products-responses:
         connector: smallrye-rabbitmq
+        auto-acknowledgment: true
       reserve-stock-responses:
         connector: smallrye-rabbitmq
+        auto-acknowledgment: true
+      release-stock-responses:
+        connector: smallrye-rabbitmq
+        auto-acknowledgment: true
+      get-buyer-responses:
+        connector: smallrye-rabbitmq
+        auto-acknowledgment: true
     outgoing:
       get-products-requests:
         connector: smallrye-rabbitmq
       reserve-stock-requests:
-        connector: smallrye-rabbitmq        
+        connector: smallrye-rabbitmq
+      release-stock-requests:
+        connector: smallrye-rabbitmq
+      get-buyer-requests:
+        connector: smallrye-rabbitmq
 
     # Global RabbitMQ connector configuration with environment variable overrides
     connector:

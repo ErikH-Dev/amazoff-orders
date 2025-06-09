@@ -17,6 +17,20 @@ quarkus:
   management:
     enabled: false
 
+  # OIDC Configuration
+  oidc:
+    auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://192.168.49.2:30005}/realms/${KEYCLOAK_REALM:amazoff}
+    client-id: ${KEYCLOAK_CLIENT_ID:amazoff-backend}
+    credentials:
+      secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}
+    tls:
+      verification: ${KEYCLOAK_TLS_VERIFICATION:none}
+    token:
+      issuer: ${KEYCLOAK_TOKEN_ISSUER:http://192.168.49.2:30005}/realms/${KEYCLOAK_REALM:amazoff}
+
+  smallrye-jwt:
+    enabled: true
+
 # Micrometer configuration for Prometheus
 micrometer:
   export:
@@ -75,6 +89,15 @@ mp:
     log:
       console:
         level: DEBUG
+    
+    # Dev OIDC Configuration
+    oidc:
+      auth-server-url: http://192.168.49.2:30080/realms/amazoff
+      client-id: amazoff-backend
+      tls:
+        verification: none
+      token:
+        issuer: http://192.168.49.2:30080/realms/amazoff
 
   # Override RabbitMQ settings for development
   mp:
@@ -125,3 +148,14 @@ mp:
       path: /q/swagger-ui
     smallrye-openapi:
       path: /q/openapi
+      
+    # Prod OIDC Configuration
+    oidc:
+      auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}/realms/${KEYCLOAK_REALM}
+      client-id: ${KEYCLOAK_CLIENT_ID}
+      credentials:
+        secret: ${KEYCLOAK_CLIENT_SECRET}
+      tls:
+        verification: ${KEYCLOAK_TLS_VERIFICATION:required}
+      token:
+        issuer: ${KEYCLOAK_TOKEN_ISSUER}/realms/${KEYCLOAK_REALM}

@@ -2,9 +2,9 @@ package controllers;
 
 import dto.CreateOrderRequest;
 import dto.UpdateOrderStatusRequest;
-import entities.Order;
 import interfaces.IOrderService;
 import io.smallrye.mutiny.Uni;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
@@ -15,6 +15,7 @@ import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
 
 @Path("/orders")
+@RolesAllowed({"buyer", "admin"})
 public class OrderController {
     private static final Logger LOG = Logger.getLogger(OrderController.class);
     private final IOrderService orderService;

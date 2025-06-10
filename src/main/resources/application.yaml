@@ -30,6 +30,14 @@ quarkus:
 
   smallrye-jwt:
     enabled: true
+    
+  smallrye-openapi:
+    path: /q/openapi
+    security-schemes:
+      bearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
 
 # Micrometer configuration for Prometheus
 micrometer:

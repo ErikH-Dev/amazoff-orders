@@ -63,9 +63,10 @@ public class OrderController {
     }
 
     @GET
-    @Path("/user/{keycloakId}")
+    @Path("/user")
     @Produces(MediaType.APPLICATION_JSON)
-    public Uni<Response> getAllOrdersByUser(@PathParam("keycloakId") String keycloakId) {
+    public Uni<Response> getAllOrdersByUser() {
+        String keycloakId = jwtUtil.getCurrentKeycloakUserId();
         LOG.infof("Received getAllOrdersByUser request: keycloakId=%s", keycloakId);
         return orderService.readAllByUser(keycloakId)
             .onItem().invoke(orders -> LOG.infof("Orders retrieved for user: keycloakId=%s, count=%d", keycloakId, orders.size()))
